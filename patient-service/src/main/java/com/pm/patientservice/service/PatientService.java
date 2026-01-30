@@ -18,17 +18,15 @@ import java.util.UUID;
 
 @Service
 public class PatientService {
-    private PatientRepository patientRepository;
-//    private BillingServiceGrpcClient billingServiceGrpcClient;
-//    private KafkaProducer kafkaProducer;
+    private final PatientRepository patientRepository;
+    private final BillingServiceGrpcClient billingServiceGrpcClient;
+    private final KafkaProducer kafkaProducer;
 
-    public PatientService(final PatientRepository patientRepository
-//                          final BillingServiceGrpcClient billingServiceGrpcClient,
-//                          final KafkaProducer kafkaProducer
-    ) {
+    public PatientService(final PatientRepository patientRepository, final BillingServiceGrpcClient billingServiceGrpcClient,
+                          final KafkaProducer kafkaProducer) {
         this.patientRepository = patientRepository;
-//        this.billingServiceGrpcClient = billingServiceGrpcClient;
-//        this.kafkaProducer = kafkaProducer;
+        this.billingServiceGrpcClient = billingServiceGrpcClient;
+        this.kafkaProducer = kafkaProducer;
     }
 
     public List<PatientResponseDTO> getPatients() {
@@ -50,6 +48,10 @@ public class PatientService {
         }
 
         Patient newPatient = patientRepository.save(PatientMapper.toModel(patientRequestDTO));
+
+        billingServiceGrpcClient.createBillingAccount(newPatient.getId().toString(), newPatient.getFirstName(), newPatient.getEmail());
+
+        kafkaProducer.sendEvent(newPatient);
 
         return PatientMapper.toDto(newPatient);
     }
